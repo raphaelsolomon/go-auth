@@ -5,6 +5,7 @@ import (
 	"golang/internal/jwt"
 	"golang/internal/models"
 	"golang/internal/password"
+	"golang/internal/validation"
 	"net/http"
 	"time"
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,28 @@ func RegisterHanders(ctx *gin.Context) {
 		return
 	}
 
+	// Validate inputs
+	if err := validation.ValidateEmail(inputDto.Email); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := validation.ValidatePassword(inputDto.Password); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := validation.ValidateName(inputDto.Firstname, "firstname"); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := validation.ValidateName(inputDto.Lastname, "lastname"); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := validation.ValidatePhoneNumber(inputDto.PhoneNo); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	hashedPass := password.HashPassword(inputDto.Password)
 
 	user := models.User{
@@ -38,7 +61,6 @@ func RegisterHanders(ctx *gin.Context) {
 		Uuid:            uuid.New().String(),
 	}
 	database := database.ConnectDatabase()
-	database.AutoMigrate(&models.User{})
 	if err := database.Create(&user).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
@@ -58,6 +80,16 @@ func LoginHanders(ctx *gin.Context) {
 		return
 	}
 
+	// Validate inputs
+	if err := validation.ValidateEmail(inputDto.Email); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if inputDto.Password == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "password is required"})
+		return
+	}
+
 	database := database.ConnectDatabase()
 
 	var user models.User
@@ -71,7 +103,11 @@ func LoginHanders(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, _ := jwt.GenerateSignToken(user.Uuid)
+	accessToken, err := jwt.GenerateSignToken(user.Uuid)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
 
 	responseBody := map[string]any{
 		"access_token": accessToken,
@@ -106,6 +142,26 @@ func UpdateUserHandlers(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON((&inputDto)); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Validate inputs (only validate if provided)
+	if inputDto.Firstname != "" {
+		if err := validation.ValidateName(inputDto.Firstname, "firstname"); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	if inputDto.Lastname != "" {
+		if err := validation.ValidateName(inputDto.Lastname, "lastname"); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	if inputDto.PhoneNo != "" {
+		if err := validation.ValidatePhoneNumber(inputDto.PhoneNo); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	database := database.ConnectDatabase()

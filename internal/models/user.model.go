@@ -5,7 +5,7 @@ type UserResponse interface {
 }
 
 type User struct {
-	ID              uint   `gorm:"prinmaryKey"`
+	ID              uint   `gorm:"primaryKey"`
 	Uuid            string `gorm:"unique"`
 	Email           string `gorm:"unique"`
 	Password        string `json:"-"`
