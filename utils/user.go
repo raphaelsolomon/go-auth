@@ -4,7 +4,7 @@ package utils
 type IUser interface {
 	GetUser() *User
 	SetFirstname(value string)
-	SetLasttname(value string)
+	SetLastname(value string)
 	SetEmail(value string)
 	SetPassword(value string)
 }
@@ -29,7 +29,7 @@ func (u *User) SetFirstname(value string) {
 	u.firstname = value
 }
 
-func (u *User) SetLasttname(value string) {
+func (u *User) SetLastname(value string) {
 	u.lastname = value
 }
 
